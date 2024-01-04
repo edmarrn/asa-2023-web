@@ -1,0 +1,76 @@
+version: '3'
+
+services:
+
+    DNS:
+        build:
+          context: ./DNS #contexo é o arquivo onde o sistema vai chamar para subir o intem.
+          dockerfile: Dockerfile
+        container_name: DNS
+        hostname: DNS  
+        image: bind
+        restart: always
+        ports:
+        - "53:53/tcp"
+        - "53:53/udp"
+        - "953:953"
+        networks:
+            - asa-network
+
+
+    proxy:
+
+        build:
+          context: ./proxy
+          dockerfile: Dockerfile
+        container_name: proxy
+        hostname: proxy  
+        image: proxy
+        restart: always
+        depends_on:
+            - db
+            - wordpress
+        ports:
+            - 80:80
+            - 443:443
+        networks:
+            - asa-network
+
+    wordpress:
+        container_name: wordpress
+        hostname: wordpress   
+        image: wordpress
+        restart: always
+        depends_on:
+            - db
+            
+        environment:
+            WORDPRESS_DB_HOST: db
+            WORDPRESS_DB_USER: exampleuser
+            WORDPRESS_DB_PASSWORD: examplepass
+            WORDPRESS_DB_NAME: exampledb
+        volumes:
+            - wordpress:/var/www/html
+        networks:
+            - asa-network
+
+    db:
+        image: mysql:5.7
+        restart: always
+        environment:
+            MYSQL_DATABASE: exampledb
+            MYSQL_USER: exampleuser
+            MYSQL_PASSWORD: examplepass
+            MYSQL_RANDOM_ROOT_PASSWORD: '1'
+        volumes:
+            - db:/var/lib/mysql
+        networks:
+         - asa-network
+
+volumes:
+    wordpress:
+    db:
+
+networks:
+  asa-network:
+    driver: bridge
